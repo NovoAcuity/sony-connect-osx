@@ -123,7 +123,7 @@ After launch a headphones icon appears in the menu bar. Click it (left or right)
 
 Sony headphones expose a proprietary RFCOMM service (advertised as "Serial HPC", UUID `96CC203E-5068-46AD-B32D-E316F5E069BA`) on top of classic Bluetooth. Frames look like this:
 
-```
+```text
 0x3E  data_type  seq  len(BE32)  payload  checksum  0x3C
 ```
 
@@ -154,7 +154,7 @@ SET commands:
 
 ## Project layout
 
-```
+```text
 Sources/SonyConnect/
   main.swift               — NSApplication bootstrap (.accessory mode, no Dock icon)
   AppDelegate.swift        — Owns the menu bar controller
