@@ -4,7 +4,65 @@ A macOS menu-bar app that controls Sony WH-1000XM4 headphones over Bluetooth —
 
 <img width="265" height="305" alt="image" src="https://github.com/user-attachments/assets/16ec2f0d-85c1-4ef6-abfa-af35522f731b" />
 
+## Install notes (NovoAcuity fork)
 
+### 1. Signing fix — re-sign after every build
+
+The `Makefile` signing step fails on current macOS, and the failure is
+hidden. Line 18 runs:
+
+```sh
+codesign --force --sign - --entitlements /dev/null $(APP_BUNDLE) 2>/dev/null || true
+```
+
+On macOS 27 `codesign` rejects the empty entitlements file with
+`/dev/null: cannot read entitlement data` and exits 1. The
+`2>/dev/null || true` hides that, so `make` still prints
+`Built SonyConnect.app`. The bundle is left without its signature seal, and
+`codesign --verify` reports
+`code has no resources but signature indicates they must be present`.
+macOS ties the Bluetooth permission to the app's signature, so an unsealed
+bundle may not get or keep that permission.
+
+After `make app`, re-sign the bundle without the entitlements flag and
+verify it:
+
+```sh
+make app
+codesign --force --sign - SonyConnect.app
+codesign --verify --strict --verbose=2 SonyConnect.app
+```
+
+The last command must print `valid on disk` and
+`satisfies its Designated Requirement`. Do not use `make run` until the
+`Makefile` is fixed: it opens the unsealed build.
+
+To install, quit any running copy, then copy the signed bundle to
+`/Applications` and open it:
+
+```sh
+ditto SonyConnect.app /Applications/SonyConnect.app
+codesign --verify --strict /Applications/SonyConnect.app
+open /Applications/SonyConnect.app
+```
+
+The `Makefile` itself is not changed yet. The fix is to drop
+`--entitlements /dev/null` and `2>/dev/null || true` from line 18, so a
+signing failure fails the build.
+
+### 2. Start at login
+
+The app does not register itself as a login item. To start it at login:
+
+1. Open **System Settings → General → Login Items** (named
+   **Login Items & Extensions** on newer macOS).
+2. Under **Open at Login**, click **+**.
+3. Select `/Applications/SonyConnect.app` and click **Open**.
+
+Add the copy in `/Applications`, not the build in the repository folder:
+`make clean` deletes that one.
+
+To remove it, select **SonyConnect** in the same list and click **−**.
 
 ## Features
 
@@ -65,7 +123,7 @@ After launch a headphones icon appears in the menu bar. Click it (left or right)
 
 Sony headphones expose a proprietary RFCOMM service (advertised as "Serial HPC", UUID `96CC203E-5068-46AD-B32D-E316F5E069BA`) on top of classic Bluetooth. Frames look like this:
 
-```
+```text
 0x3E  data_type  seq  len(BE32)  payload  checksum  0x3C
 ```
 
@@ -96,7 +154,7 @@ SET commands:
 
 ## Project layout
 
-```
+```text
 Sources/SonyConnect/
   main.swift               — NSApplication bootstrap (.accessory mode, no Dock icon)
   AppDelegate.swift        — Owns the menu bar controller

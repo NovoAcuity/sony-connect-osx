@@ -24,3 +24,6 @@ DerivedData/
 
 # Claude Code local config (per-user)
 .claude/settings.local.json
+
+# Local marker for first-deploy security scan (lint-gate.sh; Phase 14.1)
+.ci-cd-deployed
